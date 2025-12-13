@@ -1,97 +1,144 @@
+
+[multisig-zoning-model-README.md](https://github.com/user-attachments/files/24146533/multisig-zoning-model-README.md)
 # Multi-Sig Governance & Resilience Plan
 
-## 1. System Overview
+## 1. Purpose and Threat Model
 
-**Wallet Name:** [e.g. Vault Alpha]
-**Protocol:** Bitcoin (Sparrow Wallet / Bitcoin Core)
-**Configuration:** **2-of-3** Multi-Signature
-**Creation Date:** [YYYY-MM-DD]
-**Network:** Bitcoin Mainnet
+This document describes a **zoning-based 2-of-3 multisig architecture** for individual Bitcoin holders. The goal is to remain secure, recoverable, and operational under realistic adverse conditions.
 
-### Primary Threat Model
+The design explicitly addresses three common threat classes:
 
-This architecture is specifically hardened against two catastrophic scenarios:
+1. **Coercion** – being pressured to sign using assets immediately accessible.
+2. **Confiscation by authority** – loss of access to assets within a jurisdiction or failure domain.
+3. **Loss** – theft, fire, destruction, or permanent misplacement of devices or backups.
 
-1. **Coercion at Home (The "$5 Wrench Attack"):**
-   * **Threat:** An attacker forces me to sign a transaction while I am at `ZA-HOME`.
-   * **Defense:** Spending requires **2 signatures**. Only **1 key** is accessible at home (Device A). The second key (`ZA-OFFSITE`) is geographically separated.
-   * **Result:** Immediate spending is impossible. The attacker is forced to transport me to a second location, drastically increasing their risk and exposure.
+The system is structured so that **no single threat event, location failure, or zone failure results in loss of funds**.
 
-2. **National-Level Confiscation (Total Zone A Compromise):**
-   * **Threat:** A hostile state actor seizes all physical assets within my primary jurisdiction (Zone A).
-   * **Defense:** The system spans two adversarial jurisdictions.
-   * **Recovery Path:** If all physical hardware in Zone A is seized or destroyed, I flee to **Zone B**. I retrieve **Key C** and the **Encrypted Backup of Key A**. I use my **Memorized Password** to decrypt Key A and reconstruct the wallet.
+---
 
-### Security Philosophy & Mitigations
+## 2. Zoning Model
 
-* **Simplicity & Uniformity (User Error Reduction):**
-  * **Uniform Hardware:** We use **Coldcard Q1** for all three signers.
-  * **Unified Credentials:** We use the **same BIP39 Passphrase** and the **same Encryption Password** for all devices and backups.
-  * **Rationale:** Complexity is a security risk. By standardizing the secrets, we drastically reduce the chance of lockout.
+The core abstraction is **zoning**. A zone represents a **failure domain**, not a specific geography. Distances, jurisdictions, and independence levels are configurable based on the owner’s personal threat model.
 
-* **Cryptography over Obscurity:**
-  * **Data Security:** All sensitive data (descriptors, XPUBs) is strictly encrypted (AES-256).
-  * **Clear Labeling:** We label all physical items clearly. Information is encrypted, not hidden.
-  * **Access Security:** We rely on **Operational Compartmentalization** within Zone A; no single location holds enough keys to spend.
-  * **The Anchor Exception:** **Zone B** is the only location holding the **Master Index** (map of all locations). This is necessary for recovery if I die or lose my memory.
+The system uses two zones:
 
-* **Zone A Total Loss Resilience (Encrypted Mirror):**
-  * **Strategy:** We store an **Encrypted MicroSD Backup** of Key A in Zone B (`ZB-OFFSITE`).
-  * **Memory Role:** I memorize the **Encryption Password** for this file.
-  * **Risk Mitigation:** If I forget the password, **no assets are lost** provided Zone A is still intact. This memory component is strictly a redundant measure for the "Total Zone A Loss" scenario.
+### Operating Zone (Zone A)
 
-* **Theft Tolerance & Attack Vectors:**
-  * **Device Theft:** To steal funds, an attacker must physically compromise **2 separate locations** (e.g., `ZA-HOME` + `ZA-OFFSITE`).
-  * **Coercion (The "$5 Wrench"):** Since **NO seeds are memorized**, coercion at a single location is futile. An attacker cannot extract a key from my brain. They are forced to transport me to a second physical location (`ZA-OFFSITE`), drastically increasing their exposure.
-  * **Hot Zone Elimination:** Unlike previous iterations, I do not memorize Key A. Therefore, being present at `ZA-OFFSITE` does **not** create a risk of having 2 keys in one room.
+- The primary signing zone for routine operations
+- Holds **two signing keys** (Key A and Key B)
+- Keys are distributed across **two distinct locations** that are close enough to allow normal transaction signing
+- No single location in the Operating Zone holds enough material to sign
 
-* **The "Brain is Not a Vault" Rule:**
-  * We use the brain for redundancy (e.g., memorizing the backup password), but **never** as the sole storage for primary access.
-  * **Hard Copies:** Every secret (seed, passphrase, password) exists physically in Zone A.
+### Recovery Zone (Zone B)
 
-* **Coercion Resistance (The "No-Go" Rule):**
-  * **Rule:** I do **NOT** memorize the seed for **any** key.
-  * **Nuance:** I memorize the **Encryption Password** for the backup, but this password is useless without the specific **Encrypted MicroSD Backup** (located in Zone B). It has **no interaction** with the physical hardware devices.
-  * **Result:** Spending *always* requires physical travel to `ZA-OFFSITE`.
+- The survivability and recovery zone
+- Exists to guarantee recovery if the Operating Zone is lost
+- Composed of **two separate locations**:
+  - **Recovery–Key Location:** holds a single signing key (Key C)
+  - **Recovery–Knowledge Location:** holds all recovery material
 
-* **Privacy as Security:**
-  * **Encrypted Descriptors:** No wallet descriptors (XPUBs) or configuration QR codes are left in plain sight.
+Recovery material includes:
 
-## 2. Key Inventory & Zonal Topology
+- Encrypted backups of Key A and Key B
+- Passwords and user-generated passphrases
+- Encrypted wallet descriptors and configuration data
+- Documentation and the Master Index (map of all key locations)
 
-*To protect physical security, locations are coded. Zone A is the operational hub; Zone B is the survival anchor.*
+The fundamental invariant of the system is:
 
-| Zone | Key Alias | Hardware Model | Location Code | Storage Role |
-| :--- | :--- | :--- | :--- | :--- |
-| **A** | **Key A** | Coldcard Q1 | `ZA-HOME` | **Signer 1:** Device + Steel Backup. |
-| **A** | **Key B** | Coldcard Q1 | `ZA-OFFSITE` | **Signer 2:** Device stored here. Seed is **NOT** memorized. |
-| **B** | **Key C** | Coldcard Q1 | `ZB-HOME` | **Signer 3:** Device + Steel Backup. |
-| **B** | **Key A** | Encrypted MicroSD | `ZB-OFFSITE` | **Mirror:** Encrypted Backup (Key A) + **2x M-DISC** (Master Index). |
+> **Loss of any single zone does not imply loss of signing capability.**
 
-### Watch-Only Interface
+---
 
-* **Primary Software:** Sparrow Wallet (Recommended for Coldcard)
-* **Mobile Watch-Only:** BlueWallet or Nunchuk (Watch-only XPUB import)
+## 3. Security and Design Principles
 
-## 3. Operational Policy
+These principles guide implementation choices. They are defaults, not hard requirements.
 
-* **Zone A Exclusivity:** Routine spending must occur entirely within Zone A.
-* **Travel Requirement:** Signing requires physical travel between `ZA-HOME` and `ZA-OFFSITE`.
-* **Procedure:** See `procedures/signing.md` for the step-by-step guide.
+### Simplicity and Uniformity
 
-## 4. Maintenance Policy
+- Signers are implemented using equivalent hardware devices
+- Credentials (passphrases and encryption passwords) are standardized
+- The objective is to reduce user error and long-term lockout risk
 
-* **Schedule:** Quarterly (1st of Jan, Apr, Jul, Oct).
-* **Scope:** Hardware health (power cycle), software updates, and memory drills (encryption password).
-* **Procedure:** See `procedures/maintenance.md` for the full checklist.
+### User-Introduced Entropy
 
-## 5. Recovery Policy
+- All critical passphrases and encryption passwords are **user-generated**, not device-generated
+- Passphrases are generated using **physical randomness** (e.g., dice rolls) mapped to a **Diceware word list**
+- This ensures secrets are:
+  - Independent of hardware vendors and wallet standards
+  - Auditable and reproducible by the user
+  - Resistant to compromised RNGs or biased entropy sources
 
-**IF I AM INCAPACITATED OR DECEASED:**
+User-introduced entropy is treated as a **core security property**, not an optional enhancement.
 
-This repository explains the *structure* of the funds, but it does not hold the funds.
+### Cryptography over Obscurity
 
-* **Master Index:** The physical map of all key locations is stored on **M-DISC** at `ZB-OFFSITE`.
-* **Inheritance:** Heirs must retrieve the Master Index to locate keys. See `recovery/inheritance.md`.
-* **Zone A Destruction:** Execute **Encrypted Mirror Recovery** using `ZB-HOME` (Key C) + `ZB-OFFSITE` (Backup) + Password.
-* **Procedure:** See `recovery/execution.md` for step-by-step guides.
+- All sensitive information is encrypted
+- No reliance on hiding, mislabeling, or secrecy of storage media
+- Clear labeling is acceptable because security derives from encryption and separation
+
+### Controlled Knowledge Concentration
+
+- All passwords, passphrases, and documentation are intentionally concentrated in the Recovery Zone
+- Loss of the Recovery Zone results in **privacy loss**, but not loss of funds
+
+### Memory Usage Rules
+
+- Seeds are never memorized
+- Memory is used only for redundancy (e.g., encryption passwords)
+- No signing capability depends solely on human memory
+
+### Privacy as a Security Property
+
+- Wallet descriptors and metadata are treated as sensitive
+- No plaintext descriptors, XPUBs, or configuration QR codes are stored
+
+---
+
+## 4. Key Inventory and Topology
+
+*Locations are coded. Zone A is the Operating Zone. Zone B is the Recovery Zone.*
+
+| Zone | Key Alias | Signer Type     | Location Code | Role                                        |
+| ---- | --------- | --------------- | ------------- | ------------------------------------------- |
+| A    | Key A     | Hardware signer | ZA-HOME       | Signing key (location 1)                    |
+| A    | Key B     | Hardware signer | ZA-OFFSITE    | Signing key (location 2, secure)            |
+| B    | Key C     | Hardware signer | ZB-HOME       | Recovery signing key                        |
+| B    | A+B       | Encrypted media | ZB-OFFSITE    | Encrypted backups, passwords, documentation |
+
+---
+
+## 5. Operational Policy
+
+- Routine spending occurs within the Operating Zone
+- Signing requires access to two distinct Operating Zone locations
+- Recovery Zone keys are not used for day-to-day operations
+
+---
+
+## 6. Maintenance Policy
+
+- **Schedule:** Quarterly
+- **Scope:** Signer health checks, software updates, recovery review, memory verification
+
+---
+
+## 7. Recovery Policy
+
+This repository documents structure only; it never stores secrets.
+
+If the Operating Zone is lost:
+
+- Use Key C and recovery material from the Recovery Zone to reconstruct a second signing key
+- Resume 2-of-3 signing entirely from the Recovery Zone
+
+If the Recovery Zone is lost:
+
+- Funds remain spendable using the Operating Zone
+- Privacy and recovery redundancy are reduced
+
+---
+
+## 8. Final Note
+
+This system is designed to balance **survivability and convenience**. It prioritizes privacy, recoverability, and resistance to catastrophic loss while remaining practical for routine use within the Operating Zone.
