@@ -71,7 +71,7 @@ This section defines the structure of the model: what secrets exist, how they ar
 
 ### 2.4 System topology figure
 
-![System topology](docs/figures/figure-system-topology.svg)
+![System topology](docs/figures/figure-system-topology.png)
 *Figure 2.4. System topology.* The master seed `S` is split into Shamir shares for recovery and deterministically derives signer seeds via BIP85. Multisig defines the spending threshold (*m-of-n*), while Shamir defines the recovery threshold (*t-of-k*).
 
 ---
