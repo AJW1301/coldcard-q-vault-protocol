@@ -1,0 +1,20 @@
+flowchart LR
+    S[Master Seed S]
+
+    %% Shamir backup
+    S -->|SLIP-39 (t-of-k)| SH[Shamir Shares sh₁ … sh_k]
+
+    %% BIP85 derivation
+    S -->|BIP85 index i| s1[Signer Seed s₁]
+    S -->|BIP85 index j| s2[Signer Seed s₂]
+    S -->|BIP85 index n| sN[Signer Seed sₙ]
+
+    %% Passphrase application
+    s1 -->|+ passphrase p| K1[Signer Key K₁]
+    s2 -->|+ passphrase p| K2[Signer Key K₂]
+    sN -->|+ passphrase p| KN[Signer Key Kₙ]
+
+    %% Multisig
+    K1 --> MW[Multisig Wallet\nm-of-n]
+    K2 --> MW
+    KN --> MW
