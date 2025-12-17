@@ -5,11 +5,11 @@
 
 This document is a practical guideline for a single user who wants to use a 2-of-3 multisig Bitcoin wallet to defend against three common real-world risks:
 
-### 1. Coercion – being forced to sign a transaction.
+-1. Coercion – being forced to sign a transaction.
 
-### 2. Confiscation by authority – loss of devices or keys within a jurisdiction or failure domain.
+-2. Confiscation by authority – loss of devices or keys within a jurisdiction or failure domain.
 
-### 3. Key loss – device failure, misplacement, or destruction of backups.
+-3. Key loss – device failure, misplacement, or destruction of backups.
 
 It is useful to think of Bitcoin custody as serving two related but distinct functions:
 
